@@ -9,7 +9,7 @@ Original file is located at
 
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
+
 
 # 加载数据
 df = pd.read_csv("population_cbd.csv")
