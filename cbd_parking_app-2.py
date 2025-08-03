@@ -1,42 +1,39 @@
 
-import streamlit as st
+
 import pandas as pd
+import streamlit as st
 import folium
 from streamlit_folium import st_folium
 
-# 页面标题和说明
-st.title("墨尔本CBD车位预测")
-st.write("选择星期几和时间，查看哪些街道更可能有空车位。")
+# Load cleaned dataset
+df = pd.read_csv("cleaned_parking_data.csv")
 
-# 读取数据
-df = pd.read_csv("cbd_parking_availability_by_time.csv")
+# Set Streamlit page settings
+st.set_page_config(page_title="Melbourne CBD Parking Predictor", layout="wide")
+st.title("Melbourne CBD Parking Predictor")
+st.markdown("Select a weekday and hour to explore potential available parking spaces in Melbourne CBD.")
 
-# 用户输入控件
-weekday = st.selectbox("选择星期几", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
-hour = st.selectbox("选择时间（24小时制）", list(range(0, 24)))
+# Sidebar inputs
+weekday = st.selectbox("Select weekday", df["day_of_week"].unique())
+hour = st.selectbox("Select hour (24-hour format)", sorted(df["hour"].unique()))
 
-# 筛选数据
-filtered = df[(df["weekday"] == weekday) & (df["hour"] == hour)]
+# Filter dataset
+filtered = df[(df["day_of_week"] == weekday) & (df["hour"] == hour)]
 
-# 排序，空车位率高的在上
+# Sort by availability (1 = available, 0 = occupied)
 filtered = filtered.sort_values("unoccupied_rate", ascending=False)
 
-# 创建地图
-if not filtered.empty:
-    lat, lon = -37.8136, 144.9631  # 墨尔本CBD中心点
-    m = folium.Map(location=[lat, lon], zoom_start=15)
+# Create folium map
+m = folium.Map(location=[-37.8136, 144.9631], zoom_start=15)
 
-    for _, row in filtered.iterrows():
-        location_parts = row["location"].strip("()").split(",")
-        if len(location_parts) == 2:
-            try:
-                lat = float(location_parts[0])
-                lon = float(location_parts[1])
-                popup_text = f"空车位率: {row['unoccupied_rate']:.2f}"
-                folium.Marker([lat, lon], popup=popup_text).add_to(m)
-            except ValueError:
-                continue
+for _, row in filtered.iterrows():
+    color = "green" if row["unoccupied_rate"] == 1 else "red"
+    folium.Marker(
+        location=[row["lat"], row["lon"]],
+        popup=row["street_name"],
+        icon=folium.Icon(color=color)
+    ).add_to(m)
 
-    st_folium(m, width=700, height=500)
-else:
-    st.warning("没有找到符合条件的数据，请尝试选择其他时间或星期。")
+# Display map in Streamlit
+st_folium(m, width=1000, height=600)
+
