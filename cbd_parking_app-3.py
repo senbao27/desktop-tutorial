@@ -1,5 +1,4 @@
 
-
 import pandas as pd
 import streamlit as st
 import folium
@@ -36,4 +35,3 @@ for _, row in filtered.iterrows():
 
 # Display map in Streamlit
 st_folium(m, width=1000, height=600)
-
